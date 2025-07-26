@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malnutrition Prediction</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX for dynamic interactions -->
+    <script src="https://unpkg.com/htmx.org@1.8.4"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head>
+<body class="bg-gradient-to-r from-blue-50 to-purple-50 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-200">
+        <div class="text-center mb-6">
+            <h2 class="text-3xl font-bold text-blue-600">Malnutrition Prediction</h2>
+            <p class="text-gray-500 mt-2">Enter child's details for assessment</p>
+        </div>
+
+        <form hx-post="/predict" hx-target="#result" hx-swap="innerHTML" class="space-y-4">
+            <!-- Age Input -->
+            <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">Age (months):</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                        <i class="fas fa-calendar-alt"></i>
+                    </span>
+                    <input type="number" name="age" step="0.01" min="0" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                </div>
+            </div>
+
+            <!-- Gender Selection -->
+            <div>
+                <label class="block text-gray-700 font-medium mb-1">Gender:</label>
+                <div class="relative">
+                    <select name="gender" class="w-full p-3 pl-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white" required>
+                        <option value="" disabled selected>Select gender</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                        <i class="fas fa-venus-mars"></i>
+                    </div>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Height Input -->
+            <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">Height (cm):</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                        <i class="fas fa-ruler-vertical"></i>
+                    </span>
+                    <input type="number" name="height" step="0.1" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                </div>
+            </div>
+
+            <!-- Weight Input -->
+            <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">Weight (kg):</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                        <i class="fas fa-weight"></i>
+                    </span>
+                    <input type="number" name="weight" step="0.1" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-800 transition duration-300 flex items-center justify-center font-medium">
+                <i class="fas fa-calculator mr-2"></i>
+                Predict Status
+            </button>
+        </form>
+
+        <!-- Result will be displayed here -->
+        <div id="result" class="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200 text-center hidden">
+            <!-- Content will be replaced by HTMX -->
+        </div>
+    </div>
+
+    <script>
+        // Show result div only when it has content
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target.id === 'result') {
+                event.detail.target.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
