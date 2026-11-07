@@ -3,97 +3,728 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Malnutrition Prediction</title>
+    <title>Child Malnutrition Clinical Risk Assessment</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
-    <!-- HTMX for dynamic interactions -->
-    <script src="https://unpkg.com/htmx.org@1.8.4"></script>
+    <!-- HTMX for reactive updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    <style>
+        .animate-fade-in {
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-dot {
+            animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.15); }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-r from-blue-50 to-purple-50 flex items-center justify-center min-h-screen p-4">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
 
-    <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-200">
-        <div class="text-center mb-6">
-            <h2 class="text-3xl font-bold text-blue-600">Malnutrition Prediction</h2>
-            <p class="text-gray-500 mt-2">Enter child's details for assessment</p>
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md bg-white/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i class="fas fa-stethoscope text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl font-black tracking-tight text-slate-900">Child Malnutrition <span class="text-brand-600">Prediction</span></span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">Set C</span>
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium hidden sm:block">Clinical Malnutrition Risk Assessment Platform</p>
+                </div>
+            </div>
+
+            <!-- Health Status & Actions -->
+            <div class="flex items-center space-x-3">
+                <!-- Live Backend Status Pill -->
+                <div id="backendStatusPill" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 transition">
+                    <span id="backendStatusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <span id="backendStatusText">Checking ML Backend...</span>
+                </div>
+
+                <!-- API Docs Link -->
+                <a href="http://127.0.0.1:8000/docs" target="_blank" class="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-brand-600 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition">
+                    <i class="fas fa-book text-slate-400"></i>
+                    <span>FastAPI Docs</span>
+                </a>
+
+                <!-- Help Button -->
+                <button type="button" onclick="toggleModal('infoModal')" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Clinical Context & Guide">
+                    <i class="fas fa-circle-question text-base"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+        <!-- Clinical Test Presets Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center space-x-2 text-xs font-bold text-slate-700">
+                <i class="fas fa-clipboard-check text-brand-600"></i>
+                <span>Clinical Test Presets:</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button type="button" onclick="loadPreset('sam')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center space-x-1.5 transition">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <span>Sample SAM Case</span>
+                </button>
+                <button type="button" onclick="loadPreset('normal')" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold flex items-center space-x-1.5 transition">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Sample Normal Case</span>
+                </button>
+            </div>
         </div>
 
-        <form hx-post="/predict" hx-target="#result" hx-swap="innerHTML" class="space-y-4">
-            <!-- Age Input -->
-            <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Age (months):</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                        <i class="fas fa-calendar-alt"></i>
-                    </span>
-                    <input type="number" name="age" step="0.01" min="0" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
-                </div>
-            </div>
+        <!-- Main Form & Results Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            <!-- Gender Selection -->
-            <div>
-                <label class="block text-gray-700 font-medium mb-1">Gender:</label>
-                <div class="relative">
-                    <select name="gender" class="w-full p-3 pl-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white" required>
-                        <option value="" disabled selected>Select gender</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
-                    </select>
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                        <i class="fas fa-venus-mars"></i>
+            <!-- Left Column: Input Form (5 cols on lg) -->
+            <div class="lg:col-span-5 space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    
+                    <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm">
+                                1
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900">Child Assessment Metrics</h2>
+                                <p class="text-xs text-slate-500">Predictor Set C (8 Parameters)</p>
+                            </div>
+                        </div>
+
+                        <!-- Reset Button -->
+                        <button type="button" onclick="resetForm()" class="text-xs text-slate-400 hover:text-slate-700 font-medium flex items-center space-x-1 transition">
+                            <i class="fas fa-rotate-left"></i>
+                            <span>Reset</span>
+                        </button>
                     </div>
-                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
-                        <i class="fas fa-chevron-down"></i>
+
+                    <!-- Prediction Form -->
+                    <form id="predictionForm" onsubmit="handleFormSubmit(event)" class="p-5 sm:p-6 space-y-5">
+                        
+                        <!-- Demographic Group -->
+                        <div class="space-y-4">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Demographics &amp; Region</span>
+                            
+                            <!-- Age in Months -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label for="monthInput" class="text-xs font-bold text-slate-700 flex items-center space-x-1.5">
+                                        <i class="fas fa-calendar-day text-slate-400"></i>
+                                        <span>Age (Months)</span>
+                                    </label>
+                                    <span id="ageYearsHint" class="text-[11px] font-medium text-slate-400 font-mono">2.0 yrs</span>
+                                </div>
+                                <input type="number" id="monthInput" name="month" step="0.1" min="0" max="120" value="24.0" required
+                                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                       oninput="updateAgeHint(); autoComputeWHO();">
+                                <span class="text-[10px] text-slate-400 mt-1 block">Study cohort focused on 6 &ndash; 60 months</span>
+                            </div>
+
+                            <!-- Sex Selection -->
+                            <div>
+                                <label class="text-xs font-bold text-slate-700 block mb-1.5 flex items-center space-x-1.5">
+                                    <i class="fas fa-venus-mars text-slate-400"></i>
+                                    <span>Biological Sex</span>
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="sex_male" value="1" checked class="peer sr-only" onchange="autoComputeWHO();">
+                                        <div class="p-2.5 rounded-xl border border-slate-200 text-center text-xs font-bold text-slate-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition flex items-center justify-center space-x-1.5">
+                                            <i class="fas fa-mars text-blue-500"></i>
+                                            <span>Male</span>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="sex_male" value="0" class="peer sr-only" onchange="autoComputeWHO();">
+                                        <div class="p-2.5 rounded-xl border border-slate-200 text-center text-xs font-bold text-slate-600 peer-checked:bg-pink-50 peer-checked:text-pink-700 peer-checked:border-pink-300 transition flex items-center justify-center space-x-1.5">
+                                            <i class="fas fa-venus text-pink-500"></i>
+                                            <span>Female</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- District Selection -->
+                            <div>
+                                <label class="text-xs font-bold text-slate-700 block mb-1.5 flex items-center space-x-1.5">
+                                    <i class="fas fa-location-dot text-slate-400"></i>
+                                    <span>Study District</span>
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="area_noakhali" value="1" checked class="peer sr-only">
+                                        <div class="p-2.5 rounded-xl border border-slate-200 text-center text-xs font-bold text-slate-600 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-300 transition">
+                                            Noakhali
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="area_noakhali" value="0" class="peer sr-only">
+                                        <div class="p-2.5 rounded-xl border border-slate-200 text-center text-xs font-bold text-slate-600 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-300 transition">
+                                            Lakshmipur
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- Anthropometric Measurements -->
+                        <div class="space-y-4">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Anthropometric Measurements</span>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <!-- Weight -->
+                                <div>
+                                    <label for="weightInput" class="text-xs font-bold text-slate-700 block mb-1 flex items-center space-x-1.5">
+                                        <i class="fas fa-weight-scale text-slate-400"></i>
+                                        <span>Weight (kg)</span>
+                                    </label>
+                                    <input type="number" id="weightInput" name="weight" step="0.1" min="1.0" max="50.0" value="7.5" required
+                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                           oninput="autoComputeWHO();">
+                                </div>
+
+                                <!-- Height -->
+                                <div>
+                                    <label for="heightInput" class="text-xs font-bold text-slate-700 block mb-1 flex items-center space-x-1.5">
+                                        <i class="fas fa-ruler-vertical text-slate-400"></i>
+                                        <span>Height (cm)</span>
+                                    </label>
+                                    <input type="number" id="heightInput" name="height" step="0.1" min="30.0" max="150.0" value="85.0" required
+                                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                           oninput="autoComputeWHO();">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- WHO Growth Standards Z-Scores -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">WHO Standard Z-Scores</span>
+                                <div class="flex items-center space-x-1.5">
+                                    <input type="checkbox" id="autoComputeToggle" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-3.5 w-3.5" onchange="toggleAutoZScore(this.checked);">
+                                    <label for="autoComputeToggle" class="text-xs font-semibold text-brand-700 cursor-pointer">Auto-Estimate</label>
+                                </div>
+                            </div>
+
+                            <!-- WAZ -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs">
+                                    <span class="font-bold text-slate-700">WAZ (Weight-for-Age)</span>
+                                    <span id="wazBadge" class="font-mono font-bold text-rose-600">-3.50</span>
+                                </div>
+                                <input type="number" id="wazInput" name="waz" step="0.01" min="-6.0" max="6.0" value="-3.5" required
+                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                       oninput="updateZBadges();">
+                            </div>
+
+                            <!-- HAZ -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs">
+                                    <span class="font-bold text-slate-700">HAZ (Height-for-Age / Stunting)</span>
+                                    <span id="hazBadge" class="font-mono font-bold text-amber-600">-1.50</span>
+                                </div>
+                                <input type="number" id="hazInput" name="haz" step="0.01" min="-6.0" max="6.0" value="-1.5" required
+                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                       oninput="updateZBadges();">
+                            </div>
+
+                            <!-- WHZ -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs">
+                                    <span class="font-bold text-slate-700">WHZ (Weight-for-Height / Wasting)</span>
+                                    <span id="whzBadge" class="font-mono font-bold text-rose-600">-3.80</span>
+                                </div>
+                                <input type="number" id="whzInput" name="whz" step="0.01" min="-6.0" max="6.0" value="-3.8" required
+                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+                                       oninput="updateZBadges();">
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- Model Selection -->
+                        <div class="space-y-3">
+                            <label for="modelSelect" class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                <span class="flex items-center space-x-1.5">
+                                    <i class="fas fa-brain text-brand-600"></i>
+                                    <span>Inference Algorithm</span>
+                                </span>
+                                <span class="text-[10px] text-brand-600 font-bold bg-brand-50 px-2 py-0.5 rounded-md">7 Models Active</span>
+                            </label>
+                            
+                            <select id="modelSelect" name="model_name" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                                <option value="logistic_regression" selected>Logistic Regression &bull; (Recommended / AUC ~0.72)</option>
+                                <option value="random_forest">Random Forest Classifier</option>
+                                <option value="gradient_boosting">Gradient Boosting Classifier</option>
+                                <option value="stacking_ensemble">Stacking Ensemble Classifier (Meta-Learner)</option>
+                                <option value="svm_rbf">Support Vector Machine (RBF Kernel)</option>
+                                <option value="mlp">Multi-Layer Perceptron (Neural Network)</option>
+                                <option value="decision_tree">Decision Tree Classifier</option>
+                            </select>
+
+                            <!-- Multi-Model Consensus Checkbox -->
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-slate-800 block">Ensemble Consensus Mode</span>
+                                    <span class="text-[11px] text-slate-500">Run inference across all 7 models simultaneously</span>
+                                </div>
+                                <input type="checkbox" id="compareAllCheckbox" name="compare_all" value="true" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4">
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="pt-2 space-y-2">
+                            <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-bold text-sm shadow-md shadow-brand-500/20 flex items-center justify-center space-x-2 transition duration-200 active:scale-[0.99]">
+                                <i class="fas fa-calculator"></i>
+                                <span>Run Clinical Prediction</span>
+                            </button>
+
+                            <button type="button" onclick="triggerCompareAll()" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center space-x-1.5 transition">
+                                <i class="fas fa-layer-group text-slate-500"></i>
+                                <span>Compare All 7 Models</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Results & Clinical Triage Dashboard (7 cols on lg) -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Dynamic Result Container (Populated by submit handler) -->
+                <div id="resultContainer" class="min-h-[460px]">
+                    <!-- Initial Welcome / Empty State -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 shadow-sm text-center flex flex-col items-center justify-center space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-brand-600 flex items-center justify-center text-3xl shadow-inner">
+                            <i class="fas fa-notes-medical"></i>
+                        </div>
+                        <div class="max-w-md space-y-1">
+                            <h3 class="text-lg font-bold text-slate-900">Awaiting Assessment Inputs</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                Enter the child's anthropometric measurements or load a clinical sample profile, then click 
+                                <strong class="text-slate-700">"Run Clinical Prediction"</strong> to assess acute malnutrition risk.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg pt-4 text-left">
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Step 1</span>
+                                <span class="text-xs font-semibold text-slate-800 block">Input Metrics</span>
+                                <p class="text-[11px] text-slate-500">Age, Weight, Height, and WHO Z-scores.</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Step 2</span>
+                                <span class="text-xs font-semibold text-slate-800 block">Select Model</span>
+                                <p class="text-[11px] text-slate-500">Choose optimal Logistic Regression or 6 others.</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Step 3</span>
+                                <span class="text-xs font-semibold text-slate-800 block">Clinical Triage</span>
+                                <p class="text-[11px] text-slate-500">Instant risk probability and CMAM guidance.</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="button" onclick="loadPreset('sam')" class="text-xs font-bold text-brand-600 hover:text-brand-800 underline">
+                                Try testing with the sample Malnourished Case &rarr;
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Clinical Reference Card -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                        <i class="fas fa-book-medical text-slate-400"></i>
+                        <span>Diagnostic Interpretation Standards</span>
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span class="font-bold text-slate-800 block">Acute Malnutrition</span>
+                            <span class="text-slate-500 mt-0.5 block">Predicted Target: <strong class="text-rose-600">MUAC &lt; 12.5 cm</strong></span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span class="font-bold text-slate-800 block">Severe Wasting (SAM)</span>
+                            <span class="text-slate-500 mt-0.5 block">WHO WHZ: <strong class="text-rose-600">&lt; -3.0 SD</strong></span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span class="font-bold text-slate-800 block">Severe Stunting</span>
+                            <span class="text-slate-500 mt-0.5 block">WHO HAZ: <strong class="text-rose-600">&lt; -3.0 SD</strong></span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Height Input -->
-            <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Height (cm):</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                        <i class="fas fa-ruler-vertical"></i>
-                    </span>
-                    <input type="number" name="height" step="0.1" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+        </div>
+
+    </main>
+
+    <!-- Info & Troubleshooting Modal -->
+    <div id="infoModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-circle-info text-brand-600 text-lg"></i>
+                    <h3 class="text-base font-bold text-slate-900">System Architecture &amp; Integration</h3>
+                </div>
+                <button type="button" onclick="toggleModal('infoModal')" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+
+            <div class="text-xs text-slate-600 space-y-3 leading-relaxed">
+                <p>
+                    This system integrates a high-performance Go web interface with a multi-model 
+                    FastAPI inference backend running 7 validated scikit-learn algorithms on <strong>Predictor Set C</strong>.
+                </p>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 font-mono text-[11px]">
+                    <div class="text-slate-700 font-bold">Inference Backend Access Points:</div>
+                    <div>&bull; FastAPI Base URL: <a href="http://127.0.0.1:8000" target="_blank" class="text-brand-600 underline">http://127.0.0.1:8000</a></div>
+                    <div>&bull; Interactive Swagger Docs: <a href="http://127.0.0.1:8000/docs" target="_blank" class="text-brand-600 underline">http://127.0.0.1:8000/docs</a></div>
+                    <div>&bull; Health Check: <a href="http://127.0.0.1:8000/health" target="_blank" class="text-brand-600 underline">http://127.0.0.1:8000/health</a></div>
+                </div>
+                <div>
+                    <strong class="text-slate-800">If Backend is Offline:</strong>
+                    <ol class="list-decimal list-inside mt-1 space-y-1 text-slate-500 font-mono text-[11px]">
+                        <li>Navigate to <span class="bg-slate-100 px-1 py-0.5 rounded">Malnutrition-Prediction-python-service</span></li>
+                        <li>Execute <span class="font-bold text-brand-600">run_server.bat</span> (or <span class="font-bold text-brand-600">.\run_server.ps1</span>)</li>
+                    </ol>
                 </div>
             </div>
 
-            <!-- Weight Input -->
-            <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Weight (kg):</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                        <i class="fas fa-weight"></i>
-                    </span>
-                    <input type="number" name="weight" step="0.1" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
-                </div>
+            <div class="pt-2 text-right">
+                <button type="button" onclick="toggleModal('infoModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition">
+                    Dismiss
+                </button>
             </div>
-
-            <!-- Submit Button -->
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-800 transition duration-300 flex items-center justify-center font-medium">
-                <i class="fas fa-calculator mr-2"></i>
-                Predict Status
-            </button>
-        </form>
-
-        <!-- Result will be displayed here -->
-        <div id="result" class="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200 text-center hidden">
-            <!-- Content will be replaced by HTMX -->
         </div>
     </div>
 
+    <!-- Interactive Client Scripts -->
     <script>
-        // Show result div only when it has content
-        document.body.addEventListener('htmx:afterSwap', function(event) {
-            if (event.detail.target.id === 'result') {
-                event.detail.target.classList.remove('hidden');
+        // Check Python backend health status immediately
+        async function checkBackendHealth() {
+            const pill = document.getElementById('backendStatusPill');
+            const dot = document.getElementById('backendStatusDot');
+            const text = document.getElementById('backendStatusText');
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const res = await fetch('/api/health', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                const data = await res.json();
+                
+                if (data.status === 'healthy' && data.python_backend && data.python_backend.status === 'healthy') {
+                    pill.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition';
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500 pulse-dot';
+                    text.innerText = `API Connected (${data.python_backend.loaded_count || 7}/7 Models)`;
+                } else if (data.python_backend && data.python_backend.status === 'degraded') {
+                    pill.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 transition';
+                    dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+                    text.innerText = 'API Degraded';
+                } else {
+                    pill.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 cursor-pointer transition';
+                    dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+                    text.innerText = 'API Offline (Port 8000)';
+                    pill.onclick = () => toggleModal('infoModal');
+                }
+            } catch (err) {
+                pill.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 cursor-pointer transition';
+                dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+                text.innerText = 'API Offline (Port 8000)';
+                pill.onclick = () => toggleModal('infoModal');
             }
+        }
+
+        // Auto-Estimate WHO Z-Scores (LMS formula)
+        function autoComputeWHO() {
+            const isAuto = document.getElementById('autoComputeToggle').checked;
+            if (!isAuto) return;
+
+            const month = parseFloat(document.getElementById('monthInput').value) || 24;
+            const sexMaleRadio = document.querySelector('input[name="sex_male"]:checked');
+            const isMale = sexMaleRadio ? sexMaleRadio.value === "1" : true;
+            const weight = parseFloat(document.getElementById('weightInput').value) || 7.5;
+            const height = parseFloat(document.getElementById('heightInput').value) || 85.0;
+
+            const m = Math.max(0, Math.min(60, month));
+            let medHeight, medWeight, hazS, wazS, wazL;
+
+            if (isMale) {
+                medHeight = 49.9 + 2.15 * Math.pow(m, 0.82);
+                hazS = 0.038;
+                medWeight = 3.3 + 0.95 * Math.pow(m, 0.68);
+                wazS = 0.12;
+                wazL = -0.15;
+            } else {
+                medHeight = 49.1 + 2.10 * Math.pow(m, 0.82);
+                hazS = 0.039;
+                medWeight = 3.2 + 0.92 * Math.pow(m, 0.68);
+                wazS = 0.13;
+                wazL = -0.18;
+            }
+
+            function calcZ(y, l, med, s) {
+                if (y <= 0 || med <= 0 || s <= 0) return 0;
+                if (Math.abs(l) < 0.0001) return Math.log(y / med) / s;
+                return (Math.pow(y / med, l) - 1.0) / (l * s);
+            }
+
+            let haz = calcZ(height, 1.0, medHeight, hazS);
+            let waz = calcZ(weight, wazL, medWeight, wazS);
+
+            const h = Math.max(45, Math.min(120, height));
+            const medWforH = isMale ? (2.5 * Math.pow(h / 45, 2.15)) : (2.4 * Math.pow(h / 45, 2.15));
+            let whz = calcZ(weight, -0.35, medWforH, 0.095);
+
+            const clamp = v => Math.max(-6, Math.min(6, Math.round(v * 100) / 100));
+
+            document.getElementById('wazInput').value = clamp(waz).toFixed(2);
+            document.getElementById('hazInput').value = clamp(haz).toFixed(2);
+            document.getElementById('whzInput').value = clamp(whz).toFixed(2);
+
+            updateZBadges();
+        }
+
+        function updateZBadges() {
+            const waz = parseFloat(document.getElementById('wazInput').value) || 0;
+            const haz = parseFloat(document.getElementById('hazInput').value) || 0;
+            const whz = parseFloat(document.getElementById('whzInput').value) || 0;
+
+            const format = (v, id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.innerText = (v >= 0 ? '+' : '') + v.toFixed(2);
+                if (v < -2.0) {
+                    el.className = 'font-mono font-bold text-rose-600';
+                } else if (v < -1.0) {
+                    el.className = 'font-mono font-bold text-amber-600';
+                } else {
+                    el.className = 'font-mono font-bold text-emerald-600';
+                }
+            };
+
+            format(waz, 'wazBadge');
+            format(haz, 'hazBadge');
+            format(whz, 'whzBadge');
+        }
+
+        function updateAgeHint() {
+            const m = parseFloat(document.getElementById('monthInput').value) || 0;
+            const yrs = (m / 12).toFixed(1);
+            document.getElementById('ageYearsHint').innerText = `${yrs} yrs`;
+        }
+
+        function toggleAutoZScore(checked) {
+            if (checked) {
+                autoComputeWHO();
+            }
+        }
+
+        // Robust, Instant Form Submit Handler (Works via fetch or HTMX with zero freezing)
+        async function handleFormSubmit(event) {
+            if (event) event.preventDefault();
+
+            const btn = document.getElementById('submitBtn');
+            const resultBox = document.getElementById('resultContainer');
+            const form = document.getElementById('predictionForm');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Processing Inference...</span>';
+
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'HX-Request': 'true'
+                    },
+                    body: params.toString(),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                const html = await response.text();
+                resultBox.innerHTML = html;
+            } catch (err) {
+                const isTimeout = err.name === 'AbortError';
+                resultBox.innerHTML = `
+                    <div class="rounded-xl border border-rose-200 bg-rose-50 p-6 shadow-sm animate-fade-in">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 text-rose-500 text-2xl">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-rose-800">
+                                    ${isTimeout ? 'Connection Timed Out' : 'Prediction Error'}
+                                </h3>
+                                <p class="mt-1 text-sm text-rose-700">
+                                    ${isTimeout ? 'Inference service did not respond within 8 seconds. Please check if Python server is running on port 8000.' : err.message}
+                                </p>
+                                <div class="mt-3">
+                                    <button type="button" onclick="handleFormSubmit()" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition">
+                                        Retry Inference
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-calculator mr-2"></i><span>Run Clinical Prediction</span>';
+            }
+        }
+
+        // Clinical Sample Presets
+        const presets = {
+            sam: {
+                month: 24.0,
+                sex_male: "1",
+                area_noakhali: "1",
+                weight: 7.5,
+                height: 85.0,
+                waz: -3.50,
+                haz: -1.50,
+                whz: -3.80,
+                model_name: "logistic_regression"
+            },
+            normal: {
+                month: 39.66,
+                sex_male: "1",
+                area_noakhali: "0",
+                weight: 11.0,
+                height: 80.0,
+                waz: -2.53,
+                haz: -4.76,
+                whz: 0.47,
+                model_name: "logistic_regression"
+            }
+        };
+
+        function loadPreset(key) {
+            const p = presets[key];
+            if (!p) return;
+
+            document.getElementById('autoComputeToggle').checked = false;
+            document.getElementById('monthInput').value = p.month;
+            const sexEl = document.querySelector(`input[name="sex_male"][value="${p.sex_male}"]`);
+            if (sexEl) sexEl.checked = true;
+            const areaEl = document.querySelector(`input[name="area_noakhali"][value="${p.area_noakhali}"]`);
+            if (areaEl) areaEl.checked = true;
+            document.getElementById('weightInput').value = p.weight;
+            document.getElementById('heightInput').value = p.height;
+            document.getElementById('wazInput').value = p.waz;
+            document.getElementById('hazInput').value = p.haz;
+            document.getElementById('whzInput').value = p.whz;
+            document.getElementById('modelSelect').value = p.model_name;
+            document.getElementById('compareAllCheckbox').checked = false;
+
+            updateAgeHint();
+            updateZBadges();
+
+            // Auto-trigger prediction immediately
+            handleFormSubmit();
+        }
+
+        function resetForm() {
+            document.getElementById('autoComputeToggle').checked = true;
+            document.getElementById('monthInput').value = 24.0;
+            const sexEl = document.querySelector('input[name="sex_male"][value="1"]');
+            if (sexEl) sexEl.checked = true;
+            const areaEl = document.querySelector('input[name="area_noakhali"][value="1"]');
+            if (areaEl) areaEl.checked = true;
+            document.getElementById('weightInput').value = 7.5;
+            document.getElementById('heightInput').value = 85.0;
+            document.getElementById('modelSelect').value = "logistic_regression";
+            document.getElementById('compareAllCheckbox').checked = false;
+
+            updateAgeHint();
+            autoComputeWHO();
+        }
+
+        function triggerCompareAll() {
+            document.getElementById('compareAllCheckbox').checked = true;
+            handleFormSubmit();
+        }
+
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // Init on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateAgeHint();
+            updateZBadges();
+            checkBackendHealth();
+            // Periodic health polling every 10 seconds
+            setInterval(checkBackendHealth, 10000);
         });
     </script>
 </body>

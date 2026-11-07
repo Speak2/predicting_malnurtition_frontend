@@ -1,8 +1,12 @@
 services:
   - type: web
-    name: go-malnutrition-app
-    env: go
+    name: malnutrition-go-frontend
+    runtime: go
     plan: free
     buildCommand: go build -o app main.go
     startCommand: ./app
-    envVars: []
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: PYTHON_API_URL
+        value: https://malnutrition-python-api.onrender.com
