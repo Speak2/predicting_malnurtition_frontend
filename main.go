@@ -724,6 +724,8 @@ func main() {
 	}
 	if envPyURL := os.Getenv("PYTHON_API_URL"); envPyURL != "" {
 		pythonAPIURL = strings.TrimRight(envPyURL, "/")
+	} else if os.Getenv("RENDER") != "" {
+		pythonAPIURL = "https://malnutrition-prediction-python-service.onrender.com"
 	}
 
 	log.Printf("Starting Malnutrition Prediction Web Application...")

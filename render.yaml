@@ -9,4 +9,4 @@ services:
       - key: PORT
         value: 8080
       - key: PYTHON_API_URL
-        value: https://malnutrition-python-api.onrender.com
+        value: https://malnutrition-prediction-python-service.onrender.com
